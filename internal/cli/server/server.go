@@ -11,10 +11,13 @@ import (
 	"time"
 
 	"github.com/epinio/epinio/helpers/authtoken"
+	"github.com/epinio/epinio/helpers/kubernetes"
 	apiv1 "github.com/epinio/epinio/internal/api/v1"
+	"github.com/epinio/epinio/internal/api/v1/namespace"
 	"github.com/epinio/epinio/internal/api/v1/response"
 	"github.com/epinio/epinio/internal/auth"
 	"github.com/epinio/epinio/internal/cli/server/requestctx"
+	"github.com/epinio/epinio/internal/namespaces"
 	apierrors "github.com/epinio/epinio/pkg/api/core/v1/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -96,6 +99,22 @@ func NewHandler(logger logr.Logger) (*gin.Engine, error) {
 		ginRecoveryLogger,
 		initContextMiddleware(logger),
 	)
+
+	// init routes
+
+	// TODO not sure why it needs a context (it's used in the Platform)
+	cluster, err := kubernetes.GetCluster(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create Kubernetes Client")
+	}
+
+	// create the needed controllers
+	namespaceController := namespace.NewController(namespaces.NewKubernetesService(cluster))
+
+	// setup routes
+	apiv1.Routes.SetRoutes(apiv1.MakeRoutes()...)
+	apiv1.Routes.SetRoutes(apiv1.MakeNamespaceRoutes(namespaceController)...)
+	apiv1.Routes.SetRoutes(apiv1.MakeWsRoutes()...)
 
 	// Register api routes
 	{
