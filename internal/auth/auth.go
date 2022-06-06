@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	kube "k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/retry"
 )
@@ -38,9 +39,13 @@ func NewAuthServiceFromContext(ctx context.Context) (*AuthService, error) {
 		return nil, errors.Wrap(err, "error getting kubernetes cluster")
 	}
 
+	return NewAuthService(cluster.Kubectl), nil
+}
+
+func NewAuthService(k8s kube.Interface) *AuthService {
 	return &AuthService{
-		SecretInterface: cluster.Kubectl.CoreV1().Secrets(helmchart.Namespace()),
-	}, nil
+		SecretInterface: k8s.CoreV1().Secrets(helmchart.Namespace()),
+	}
 }
 
 // GetUsers returns all the Epinio users
