@@ -3,6 +3,7 @@ package client
 
 import (
 	"github.com/epinio/epinio/helpers/tracelog"
+	apiv1 "github.com/epinio/epinio/internal/api/v1"
 	"github.com/go-logr/logr"
 )
 
@@ -19,6 +20,12 @@ type Client struct {
 // New returns a new Epinio API client
 func New(url string, wsURL string, user string, password string) *Client {
 	log := tracelog.NewLogger().WithName("EpinioApiClient").V(3)
+
+	// init routes
+	// we don't need the controllers in the CLI, but we just need the routes endpoints
+	apiv1.Routes.SetRoutes(apiv1.MakeRoutes()...)
+	apiv1.Routes.SetRoutes(apiv1.MakeNamespaceRoutes(nil)...)
+	apiv1.Routes.SetRoutes(apiv1.MakeWsRoutes()...)
 
 	return &Client{
 		log:      log,
